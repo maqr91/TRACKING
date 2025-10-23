@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Rastrea tu envío - Maura Multiservices</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --azul: #0033A0;
+      --rojo: #E10600;
+      --blanco: #FFFFFF;
+      --gris: #f5f5f5;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: var(--gris);
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background: var(--azul);
+      color: var(--blanco);
+      padding: 20px;
+      text-align: center;
+    }
+
+    header img {
+      max-width: 180px;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 30px auto;
+      background: var(--blanco);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .input-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0;
+    }
+
+    input {
+      width: 70%;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px 0 0 8px;
+      outline: none;
+    }
+
+    button {
+      padding: 10px 15px;
+      font-size: 16px;
+      background: var(--rojo);
+      color: var(--blanco);
+      border: none;
+      cursor: pointer;
+      border-radius: 0 8px 8px 0;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #b60000;
+    }
+
+    .resultado {
+      margin-top: 20px;
+    }
+
+    .card {
+      text-align: left;
+      padding: 15px;
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+
+    .estado-actual {
+      font-size: 18px;
+      color: var(--rojo);
+      margin: 10px 0;
+      font-weight: bold;
+    }
+
+    .historial-item {
+      border-left: 4px solid var(--azul);
+      padding-left: 10px;
+      margin: 8px 0;
+    }
+
+    footer {
+      background: var(--azul);
+      color: var(--blanco);
+      text-align: center;
+      padding: 10px;
+      font-size: 14px;
+      margin-top: 40px;
+    }
+
+    @media (max-width: 600px) {
+      input { width: 60%; font-size: 14px; }
+      button { font-size: 14px; }
+      .input-row { flex-direction: column; gap: 8px; }
+      input { width: 100%; border-radius: 8px; }
+      button { width: 100%; border-radius: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <!-- Puedes reemplazar esta imagen por tu logo -->
+    <img src="https://i.postimg.cc/yNKhrhG6/logo-maura.png" alt="Maura Multiservices">
+    <h1>Rastrea tu envío 📦</h1>
+  </header>
+
+  <div class="container">
+    <div class="input-row">
+      <input id="tn" placeholder="Ej: MIR123456789" aria-label="Número de guía">
+      <button id="buscar" aria-label="Buscar guía">Buscar</button>
+    </div>
+    <div class="resultado" id="resultado"></div>
+  </div>
+
+  <footer>
+    © 2025 Maura Multiservices · Miami - Nicaragua<br>
+    📞 +1 (786) 555-1234 · ✉️ info@mauramultiservices.com
+  </footer>
+
+  <script>
+    // URL de tu API de Google Sheets
+    const API_URL = "https://script.google.com/macros/s/AKfycbwAFqUZCbnrH1whb-PzwsrNdJcG2Jy8fOeAI-Y7dFLIMExart_0Ohz454S4Pi_-cyRgTw/exec";
+
+    const tnInput = document.getElementById('tn');
+    const btn = document.getElementById('buscar');
+    const resultado = document.getElementById('resultado');
+
+    btn.addEventListener('click', buscarGuia);
+    tnInput.addEventListener('keypress', e => { if (e.key === 'Enter') buscarGuia(); });
+
+    async function buscarGuia() {
+      const tn = tnInput.value.trim();
+      if (!tn) {
+        resultado.innerHTML = `<div class="card">⚠️ Ingrese un número de guía</div>`;
+        return;
+      }
+
+      resultado.innerHTML = '⏳ Buscando...';
+
+      try {
+        const res = await fetch(`${API_URL}?tracking=${encodeURIComponent(tn)}`);
+        const data = await res.json();
+
+        if (data.error) {
+          resultado.innerHTML = `<div class="card">⚠️ ${data.error}</div>`;
+          return;
+        }
+
+        const historial = data.historial
+          ? data.historial.split('→').map(i => `<div class="historial-item">→ ${i.trim()}</div>`).join('')
+          : '<div class="historial-item">Sin historial registrado</div>';
+
+        resultado.innerHTML = `
+          <div class="card">
+            <b>📄 Guía:</b> ${data.tracking_number}<br>
+            <b>👤 Remitente:</b> ${data.remitente}<br>
+            <b>📬 Destinatario:</b> ${data.destinatario}<br>
+            <b>🏙️ Origen:</b> ${data.origen}<br>
+            <b>🌍 Destino:</b> ${data.destino}<br>
+            <div class="estado-actual">🚚 ${data.estado_actual}</div>
+            <hr>
+            <b>📜 Historial:</b><br>
+            ${historial}
+          </div>
+        `;
+      } catch (error) {
+        resultado.innerHTML = `<div class="card">❌ Error al conectar con el servidor</div>`;
+      }
+    }
+  </script>
+</body>
+</html>
